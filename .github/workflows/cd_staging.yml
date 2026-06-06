@@ -1,0 +1,34 @@
+name: Deploy to Dev/Staging
+on:
+  push:
+    branches: [main]
+
+jobs:
+  redeploy_everything:
+    runs-on: ubuntu-latest
+    name: Deploying everything to the dev cluster
+    steps:
+      - name: Execute remote SSH deployment commands
+        run: |
+          echo "${{ secrets.DEV_SSH_KEY }}" > ~/ssh_key
+          chmod 600 ~/ssh_key
+
+          mkdir -p ~/.ssh
+          touch ~/.ssh/known_hosts
+          echo "${{ secrets.DEV_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+          ssh -i ~/ssh_key ubuntu@ec2-35-154-211-178.ap-south-1.compute.amazonaws.com -t "
+            cd ~/deployment_practise && \
+            git pull origin main && \
+            
+            export PATH=\$HOME/.bun/bin:\$PATH && \
+            
+            bun install && \
+            bun x prisma generate && \
+            
+            bun run build && \
+            
+            pm2 restart next-frontend && \
+            pm2 restart http-server && \
+            pm2 restart ws-server
+          "
