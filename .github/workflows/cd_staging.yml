@@ -2,32 +2,43 @@ name: Deploy to Development Cluster
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    name: Syncing and Restarting Dev Workspaces
-
     steps:
-      - name: Checkout Code Repository
-        uses: actions/checkout@v4
-
-      - name: Execute Remote Deployment via SSH
+      - name: Deploy to EC2
         env:
           PRIVATE_KEY: ${{ secrets.DEV_SSH_KEY }}
         run: |
           echo "$PRIVATE_KEY" > ~/ssh_key
           chmod 600 ~/ssh_key
 
-          ssh -i ~/ssh_key -o StrictHostKeyChecking=no ubuntu@ec2-35-154-211-178.ap-south-1.compute.amazonaws.com -t "
-            cd ~/deployment_practise && \
-            git pull origin main && \
-            export PATH=\$HOME/.bun/bin:\$PATH && \
-            bun install && \
-            bun x prisma generate && \
-            bun run build && \
-            pm2 restart next-frontend && \
-            pm2 restart http-server && \
-            pm2 restart ws-server
-          "
+          ssh -i ~/ssh_key \
+            -o StrictHostKeyChecking=no \
+            ubuntu@ec2-35-154-211-178.ap-south-1.compute.amazonaws.com << 'EOF'
+
+            cd ~/deployment_practise
+
+            git fetch origin
+            git reset --hard origin/main
+
+            export PATH="$HOME/.bun/bin:$PATH"
+
+            bun install
+
+            cd packages/db
+            bunx prisma generate
+            bunx prisma migrate deploy
+            cd ../..
+
+            bun run build
+
+            pm2 restart next-frontend || pm2 start "bun run start" --name "next-frontend" --cwd "/home/ubuntu/deployment_practise/apps/web"
+            pm2 restart http-server || pm2 start "bun index.ts" --name "http-server" --cwd "/home/ubuntu/deployment_practise/apps/http-server"
+            pm2 restart ws-server || pm2 start "bun index.ts" --name "ws-server" --cwd "/home/ubuntu/deployment_practise/apps/ws-server"
+
+            pm2 save
+          EOF
