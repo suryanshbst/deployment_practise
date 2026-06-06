@@ -30,6 +30,12 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=yes ubuntu@ec2-35-154-211-178.ap-south-1.compute.amazonaws.com << 'EOF'
 
+            # Ensure Node.js and basic build tools are available for turbo/next
+            sudo apt-get update -y
+            sudo apt-get install -y curl ca-certificates gnupg build-essential
+            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+
             cd ~/deployment_practise
 
             git fetch origin
