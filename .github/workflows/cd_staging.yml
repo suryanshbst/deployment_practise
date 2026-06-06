@@ -9,6 +9,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate DEV_SSH_KEY secret
+        run: |
+          if [ -z "${{ secrets.DEV_SSH_KEY }}" ]; then
+            echo "ERROR: DEV_SSH_KEY secret is not set. Add it in Repository settings → Secrets and variables → Actions." >&2
+            exit 1
+          fi
+
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
