@@ -9,16 +9,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to EC2
-        env:
-          PRIVATE_KEY: ${{ secrets.DEV_SSH_KEY }}
-        run: |
-          echo "$PRIVATE_KEY" > ~/ssh_key
-          chmod 600 ~/ssh_key
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEV_SSH_KEY }}
 
-          ssh -i ~/ssh_key \
-            -o StrictHostKeyChecking=no \
-            ubuntu@ec2-35-154-211-178.ap-south-1.compute.amazonaws.com << 'EOF'
+      - name: Add EC2 host to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ec2-35-154-211-178.ap-south-1.compute.amazonaws.com >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=yes ubuntu@ec2-35-154-211-178.ap-south-1.compute.amazonaws.com << 'EOF'
 
             cd ~/deployment_practise
 
