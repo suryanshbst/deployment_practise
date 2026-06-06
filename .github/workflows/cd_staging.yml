@@ -17,14 +17,10 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.DEV_SSH_KEY }}
         run: |
-          mkdir -p ~/.ssh
-          touch ~/.ssh/known_hosts
-          echo "${{ secrets.DEV_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
-
           echo "$PRIVATE_KEY" > ~/ssh_key
           chmod 600 ~/ssh_key
 
-          ssh -i ~/ssh_key ubuntu@ec2-35-154-211-178.ap-south-1.compute.amazonaws.com -t "
+          ssh -i ~/ssh_key -o StrictHostKeyChecking=no ubuntu@ec2-35-154-211-178.ap-south-1.compute.amazonaws.com -t "
             cd ~/deployment_practise && \
             git pull origin main && \
             export PATH=\$HOME/.bun/bin:\$PATH && \
